@@ -3,12 +3,21 @@ set -e
 
 # Best-effort: stop the per-user service for the invoking user if we can reach it.
 if [ "$1" = "remove" ] || [ "$1" = "upgrade" ]; then
-    if [ -n "$SUDO_USER" ] && command -v systemctl >/dev/null 2>&1; then
-        uid=$(id -u "$SUDO_USER" 2>/dev/null || true)
+    user="${SUDO_USER:-}"
+    # this runs as root: only accept a plausible, metacharacter-free username
+    case "$user" in
+        "" | -* | *[!A-Za-z0-9_-]* ) user="" ;;
+    esac
+    if [ -n "$user" ] && command -v systemctl >/dev/null 2>&1; then
+        uid=$(id -u -- "$user" 2>/dev/null || true)
+        case "$uid" in
+            "" | *[!0-9]* ) uid="" ;;
+        esac
         if [ -n "$uid" ] && [ -S "/run/user/$uid/bus" ]; then
-            su - "$SUDO_USER" -c \
-              "XDG_RUNTIME_DIR=/run/user/$uid systemctl --user disable --now codenotch.service" \
-              >/dev/null 2>&1 || true
+            runuser -u "$user" -- \
+                env "XDG_RUNTIME_DIR=/run/user/$uid" \
+                systemctl --user disable --now codenotch.service \
+                >/dev/null 2>&1 || true
         fi
     fi
 fi

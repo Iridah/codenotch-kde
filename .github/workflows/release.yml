@@ -5,13 +5,19 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# No pull_request trigger: the write token is only ever exposed to code the
+# maintainer has tagged, never to untrusted PR contributions.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   deb:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write        # scoped to this job: create release + upload asset
     steps:
+      # Action refs are float tags; Dependabot (.github/dependabot.yml) tracks
+      # them. Pin to commit SHAs if you want to remove that trust entirely.
       - uses: actions/checkout@v4
 
       - name: Check version matches tag

@@ -14,10 +14,11 @@ import shutil
 import subprocess
 import urllib.request
 import urllib.error
+import urllib.parse
 from pathlib import Path
 from datetime import datetime, timezone
 
-__version__ = "0.1.2"  # dev fallback; the installed VERSION file wins
+__version__ = "0.1.3"  # dev fallback; the installed VERSION file wins
 try:
     _vf = Path(__file__).with_name("VERSION")
     if _vf.is_file():
@@ -58,9 +59,40 @@ HOOK_EVENTS = ["UserPromptSubmit", "PreToolUse", "PostToolUse",
 def load_cfg():
     cfg = dict(DEFAULTS)
     try:
-        cfg.update(json.loads(CFG_PATH.read_text()))
+        user = json.loads(CFG_PATH.read_text())
+        if isinstance(user, dict):
+            cfg.update(user)
     except Exception:
         pass
+    return _coerce_cfg(cfg)
+
+
+def _coerce_cfg(cfg):
+    """Force every field to a sane type/range so a hand-edited config file
+    can't crash startup or push the window off-screen."""
+    def num(key, lo, hi, cast=float):
+        try:
+            v = cast(cfg.get(key, DEFAULTS[key]))
+        except (TypeError, ValueError):
+            v = cast(DEFAULTS[key])
+        return max(lo, min(hi, v))
+
+    cfg["scale"] = num("scale", 0.5, 4.0)
+    cfg["opacity"] = num("opacity", 0.2, 1.0)
+    cfg["poll_seconds"] = num("poll_seconds", 15, 3600, int)
+    cfg["margin_x"] = num("margin_x", -4000, 4000, int)
+    cfg["margin_y"] = num("margin_y", 0, 4000, int)
+    cfg["peek"] = num("peek", 2, 80, int)
+    cfg["reveal_ms"] = num("reveal_ms", 0, 4000, int)
+    cfg["hide_delay_ms"] = num("hide_delay_ms", 0, 20000, int)
+    if cfg.get("edge") not in ("top", "bottom"):
+        cfg["edge"] = "top"
+    if cfg.get("align") not in ("left", "center", "right"):
+        cfg["align"] = "center"
+    if not isinstance(cfg.get("autohide"), bool):
+        cfg["autohide"] = bool(DEFAULTS["autohide"])
+    if not isinstance(cfg.get("endpoint"), str):
+        cfg["endpoint"] = DEFAULTS["endpoint"]
     return cfg
 
 
@@ -107,29 +139,63 @@ def load_token():
             o.get("subscriptionType"), o.get("rateLimitTier"))
 
 
+# The OAuth bearer token must only ever leave this machine towards Anthropic.
+ALLOWED_HOSTS = ("api.anthropic.com",)
+
+
+def _check_endpoint(url):
+    """Return the validated URL or raise. Guards the bearer token against a
+    tampered config file pointing `endpoint` at an attacker (or at plain http)."""
+    try:
+        u = urllib.parse.urlsplit(url)
+    except Exception:
+        raise UsageError("endpoint inválido")
+    host = (u.hostname or "").lower()
+    ok_host = host in ALLOWED_HOSTS or host.endswith(".anthropic.com")
+    if u.scheme != "https" or not ok_host:
+        raise UsageError("endpoint no permitido")
+    return url
+
+
+class _SameHostRedirect(urllib.request.HTTPRedirectHandler):
+    """Follow redirects only within the same host; never carry the token off-site."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        old = urllib.parse.urlsplit(req.full_url).hostname
+        new = urllib.parse.urlsplit(newurl).hostname
+        if new != old or not str(newurl).startswith("https://"):
+            return None
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_OPENER = urllib.request.build_opener(_SameHostRedirect())
+
+
 def fetch_usage(cfg):
+    url = _check_endpoint(cfg.get("endpoint") or DEFAULTS["endpoint"])
     tok, exp, sub, tier = load_token()
     if not tok:
         raise UsageError("sin token")
-    if exp and exp / 1000.0 < time.time() - 30:
-        # token likely stale; still try, Claude Code refreshes it on next run
-        pass
-    req = urllib.request.Request(cfg["endpoint"], headers={
+    req = urllib.request.Request(url, headers={
         "Authorization": f"Bearer {tok}",
         "anthropic-beta": "oauth-2025-04-20",
         "anthropic-version": "2023-06-01",
-        "User-Agent": "codenotch-kde/0.1 (KDE; X11)",
+        "User-Agent": f"codenotch-kde/{__version__} (KDE; X11)",
         "Accept": "application/json",
     })
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return json.loads(r.read().decode("utf-8")), sub, tier
+        with _OPENER.open(req, timeout=15) as r:
+            if urllib.parse.urlsplit(r.geturl()).hostname not in ALLOWED_HOSTS \
+                    and not str(r.geturl()).startswith("https://api.anthropic.com"):
+                raise UsageError("redirección rechazada")
+            return json.loads(r.read(2_000_000).decode("utf-8")), sub, tier
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):
             raise UsageError("auth (abrí Claude Code)")
         raise UsageError(f"HTTP {e.code}")
-    except urllib.error.URLError as e:
+    except urllib.error.URLError:
         raise UsageError("sin red")
+    except UsageError:
+        raise
     except Exception as e:  # noqa: BLE001
         raise UsageError(str(e)[:40])
 
@@ -639,12 +705,17 @@ def run_gui(cfg):
 
         def _persist(self, **kv):
             try:
-                CFG_PATH.parent.mkdir(parents=True, exist_ok=True)
+                CFG_PATH.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
                 cur = {}
                 if CFG_PATH.exists():
-                    cur = json.loads(CFG_PATH.read_text())
+                    loaded = json.loads(CFG_PATH.read_text())
+                    if isinstance(loaded, dict):
+                        cur = loaded
                 cur.update(kv)
-                CFG_PATH.write_text(json.dumps(cur, indent=2))
+                tmp = CFG_PATH.with_suffix(".json.tmp")
+                tmp.write_text(json.dumps(cur, indent=2))
+                tmp.chmod(0o600)
+                tmp.replace(CFG_PATH)
             except Exception:
                 pass
 

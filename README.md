@@ -103,6 +103,12 @@ Install mapping (`.deb` and `make install-local` agree):
 - Without hooks the dot falls back to transcript mtime — working / idle only,
   no "waiting".
 
+## Security
+
+The overlay reads your Claude OAuth token and sends it only to
+`https://*.anthropic.com`. Threat model, hardening notes and how to report an
+issue are in [SECURITY.md](SECURITY.md).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

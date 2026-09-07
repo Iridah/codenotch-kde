@@ -7,7 +7,7 @@ Depends: python3 (>= 3.11), python3-pyqt6, x11-utils, xdg-utils
 Recommends: libqt6svg6
 Maintainer: Alejandro Silva <a_silva_q@icloud.com>
 Installed-Size: @SIZE@
-Homepage: https://github.com/iridah/codenotch-kde
+Homepage: https://github.com/Iridah/codenotch-kde
 Description: Tiny KDE overlay for Claude Code usage limits and session state
  A small always-on-top bar for KDE Plasma on X11. It reads the local Claude
  Code OAuth token (~/.claude/.credentials.json) and polls the same usage
