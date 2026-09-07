@@ -35,7 +35,7 @@ versioning is [SemVer](https://semver.org/).
   (`codenotch --install-hooks`) with a transcript-mtime fallback.
 - `.deb` packaging, systemd `--user` service, desktop entry.
 
-[Unreleased]: https://github.com/asilvaq/codenotch-kde/compare/v0.1.2...HEAD
-[0.1.2]: https://github.com/asilvaq/codenotch-kde/releases/tag/v0.1.2
-[0.1.1]: https://github.com/asilvaq/codenotch-kde/releases/tag/v0.1.1
-[0.1.0]: https://github.com/asilvaq/codenotch-kde/releases/tag/v0.1.0
+[Unreleased]: https://github.com/iridah/codenotch-kde/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/iridah/codenotch-kde/releases/tag/v0.1.2
+[0.1.1]: https://github.com/iridah/codenotch-kde/releases/tag/v0.1.1
+[0.1.0]: https://github.com/iridah/codenotch-kde/releases/tag/v0.1.0
