@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+# Best-effort: stop the per-user service for the invoking user if we can reach it.
+if [ "$1" = "remove" ] || [ "$1" = "upgrade" ]; then
+    if [ -n "$SUDO_USER" ] && command -v systemctl >/dev/null 2>&1; then
+        uid=$(id -u "$SUDO_USER" 2>/dev/null || true)
+        if [ -n "$uid" ] && [ -S "/run/user/$uid/bus" ]; then
+            su - "$SUDO_USER" -c \
+              "XDG_RUNTIME_DIR=/run/user/$uid systemctl --user disable --now codenotch.service" \
+              >/dev/null 2>&1 || true
+        fi
+    fi
+fi
+
+exit 0

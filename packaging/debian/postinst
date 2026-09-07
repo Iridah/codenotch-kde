@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database -q /usr/share/applications || true
+    fi
+    cat <<'EOF'
+
+codenotch instalado. Para activarlo (como tu usuario, NO root):
+
+    systemctl --user daemon-reload
+    systemctl --user enable --now codenotch.service
+
+Indicador de sesión (trabajando / esperándote), opcional:
+
+    codenotch --install-hooks
+
+Ver el JSON crudo del endpoint de uso para ajustar el parseo:
+
+    codenotch --dump
+
+Config: ~/.config/codenotch/config.json  (edge, align, scale, poll_seconds)
+
+EOF
+fi
+
+exit 0

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=codenotch
+GenericName=Claude usage overlay
+Comment=Barra flotante con el consumo de límites de Claude Code
+Exec=codenotch
+Icon=utilities-system-monitor
+Terminal=false
+Categories=Utility;KDE;Qt;
+Keywords=claude;usage;limit;ai;monitor;
+X-KDE-autostart-phase=2
+StartupNotify=false

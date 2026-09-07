@@ -1,0 +1,17 @@
+Package: codenotch
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.11), python3-pyqt6, x11-utils, xdg-utils
+Recommends: libqt6svg6
+Maintainer: Alejandro Silva <a_silva_q@icloud.com>
+Installed-Size: @SIZE@
+Homepage: https://github.com/asilvaq/codenotch-kde
+Description: Tiny KDE overlay for Claude Code usage limits and session state
+ A small always-on-top bar for KDE Plasma on X11. It reads the local Claude
+ Code OAuth token (~/.claude/.credentials.json) and polls the same usage
+ endpoint the /usage command uses, showing the 5-hour and weekly limit
+ consumption plus a coloured dot indicating whether a Claude session is
+ working, waiting on you, or idle. The session indicator uses lightweight
+ Claude Code hooks installed on demand with `codenotch --install-hooks`.

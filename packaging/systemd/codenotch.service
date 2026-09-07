@@ -1,0 +1,14 @@
+[Unit]
+Description=codenotch - Claude usage overlay for KDE
+PartOf=graphical-session.target
+After=graphical-session.target plasma-workspace.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/codenotch
+Restart=on-failure
+RestartSec=5
+Slice=session.slice
+
+[Install]
+WantedBy=default.target
