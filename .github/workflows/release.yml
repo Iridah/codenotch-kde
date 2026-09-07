@@ -18,7 +18,7 @@ jobs:
     steps:
       # Action refs are float tags; Dependabot (.github/dependabot.yml) tracks
       # them. Pin to commit SHAs if you want to remove that trust entirely.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check version matches tag
         if: startsWith(github.ref, 'refs/tags/v')
